@@ -1,101 +1,51 @@
-# Org
+# Angular, Keycloak, and Playwright
 
-<a alt="Nx logo" href="https://nx.dev" target="_blank" rel="noreferrer"><img src="https://raw.githubusercontent.com/nrwl/nx/master/images/nx-logo.png" width="45"></a>
+This repository contains a reference application for configuring Angular to use Keycloak for authentication and to authenticate with Keycloak in Playwright tests.
 
-✨ Your new, shiny [Nx workspace](https://nx.dev) is ready ✨.
+## Development
 
-[Learn more about this workspace setup and its capabilities](https://nx.dev/getting-started/tutorials/angular-standalone-tutorial?utm_source=nx_project&amp;utm_medium=readme&amp;utm_campaign=nx_projects) or run `npx nx graph` to visually explore what was created. Now, let's get you up to speed!
+While this repo is public and meant to be shared, as the author it is setup for my development workflow. I use [devcontainers](https://containers.dev/) for all of my development. I also work on Windows using WSL so the commands that are run outside of the containers are written for Powershell and they may not work in your terminal. You can just ask your favorite AI pair programmer to convert them :)
 
-## Run tasks
+Keycloak is installed as a Docker container in the [docker-compose](./.devcontainer/docker-compose.yml) file. It uses the embedded h2 database because using an external database is outside the scope of this project. Since we are using the embedded database there are a few things we need to do that will allow us to export the keycloak data, store it with the project, and then import it when the Keycloak container (re)starts.
 
-To run the dev server for your app, use:
+**Note: there is a keycloak configuration file with one realm named 'dev' in the /.keycloak directory. This file gets imported automatically when the container starts. It has one user with the username 'dev.user' and the absolutely secure and unguessable password of 'Pa$$word1'**
 
-```sh
-npx nx serve org
+First, the keycloak service creates a volume to store the h2 data. Since exporting this data requires the keycloak service to be stopped when running this export command, this will allow us access to the data when the container is stopped. Also, this volume needs to be accessed by the keyclok user so there is an 'init' container that runs first to ensure this. See the [docker-compose](./.devcontainer/docker-compose.yml) file.
+
+Since we already have a config file, these steps are here for reference and only need to be performed if you change the keycloak config through the admin UI and want to save that config.
+
+Stop the keycloak container. This can either done through Docker desktop (easy) or you can run the following commands in the terminal or your host system:
+
+To get the keycloak container id or name
+
+```powershell
+docker ps
 ```
 
-To create a production bundle:
+To stop the container
 
-```sh
-npx nx build org
+```powershell
+docker stop <keycloak container id or name>
 ```
 
-To see all available targets to run for a project, run:
+Then we need to export the keycloak config as json. This requires running the Keycloak image in a different container with the data volume mounted.
 
-```sh
-npx nx show project org
+- change <keycloak data volume name> to the name of the volume container containing the keycloak h2 database.
+
+```powershell
+docker run --rm -v <keycloak data volume name>:/opt/keycloak/data/h2 -v ${PWD}:/tmp quay.io/keycloak/keycloak:26.2.5 export --realm dev --file /tmp/dev-export.json
 ```
 
-These targets are either [inferred automatically](https://nx.dev/concepts/inferred-tasks?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) or defined in the `project.json` or `package.json` files.
+The previous command mounted the current working directory `${PWD}` on the host machine as a volume so that is where the exported json file is. We now need to copy it from the host to the app container.
 
-[More about running tasks in the docs &raquo;](https://nx.dev/features/run-tasks?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
+- replace the <id or name of app container> with the id or name of the Angular app container
 
-## Add new projects
-
-While you could add new projects to your workspace manually, you might want to leverage [Nx plugins](https://nx.dev/concepts/nx-plugins?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) and their [code generation](https://nx.dev/features/generate-code?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) feature.
-
-Use the plugin's generator to create new projects.
-
-To generate a new application, use:
-
-```sh
-npx nx g @nx/angular:app demo
+```powershell
+docker cp ./dev-export.json <id or name of the app container>:/workspaces/angular-keycloak-playwright/.keycloak
 ```
 
-To generate a new library, use:
+You will need to manually delete the exported file from the host directory after copying (there is also an empty folder created called 'hsperfdata_keycloak' that can be deleted as well)
 
-```sh
-npx nx g @nx/angular:lib mylib
-```
+## Angular configuration
 
-You can use `npx nx list` to get a list of installed plugins. Then, run `npx nx list <plugin-name>` to learn about more specific capabilities of a particular plugin. Alternatively, [install Nx Console](https://nx.dev/getting-started/editor-setup?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) to browse plugins and generators in your IDE.
-
-[Learn more about Nx plugins &raquo;](https://nx.dev/concepts/nx-plugins?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) | [Browse the plugin registry &raquo;](https://nx.dev/plugin-registry?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-
-## Set up CI!
-
-### Step 1
-
-To connect to Nx Cloud, run the following command:
-
-```sh
-npx nx connect
-```
-
-Connecting to Nx Cloud ensures a [fast and scalable CI](https://nx.dev/ci/intro/why-nx-cloud?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) pipeline. It includes features such as:
-
-- [Remote caching](https://nx.dev/ci/features/remote-cache?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [Task distribution across multiple machines](https://nx.dev/ci/features/distribute-task-execution?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [Automated e2e test splitting](https://nx.dev/ci/features/split-e2e-tasks?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [Task flakiness detection and rerunning](https://nx.dev/ci/features/flaky-tasks?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-
-### Step 2
-
-Use the following command to configure a CI workflow for your workspace:
-
-```sh
-npx nx g ci-workflow
-```
-
-[Learn more about Nx on CI](https://nx.dev/ci/intro/ci-with-nx#ready-get-started-with-your-provider?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-
-## Install Nx Console
-
-Nx Console is an editor extension that enriches your developer experience. It lets you run tasks, generate code, and improves code autocompletion in your IDE. It is available for VSCode and IntelliJ.
-
-[Install Nx Console &raquo;](https://nx.dev/getting-started/editor-setup?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-
-## Useful links
-
-Learn more:
-
-- [Learn more about this workspace setup](https://nx.dev/getting-started/tutorials/angular-standalone-tutorial?utm_source=nx_project&amp;utm_medium=readme&amp;utm_campaign=nx_projects)
-- [Learn about Nx on CI](https://nx.dev/ci/intro/ci-with-nx?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [Releasing Packages with Nx release](https://nx.dev/features/manage-releases?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [What are Nx plugins?](https://nx.dev/concepts/nx-plugins?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-
-And join the Nx community:
-- [Discord](https://go.nx.dev/community)
-- [Follow us on X](https://twitter.com/nxdevtools) or [LinkedIn](https://www.linkedin.com/company/nrwl)
-- [Our Youtube channel](https://www.youtube.com/@nxdevtools)
-- [Our blog](https://nx.dev/blog?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
+TODO

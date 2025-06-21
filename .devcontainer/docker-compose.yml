@@ -1,0 +1,46 @@
+services:
+  # this container runs at startup to set the correct permissions on the keycloak_data volume
+  # this volume requires the keycloak user to have access to the volume to prevent AccessDenied exceptions
+  # if for some reasone this doesn't set the permissions because of a race condition you can run the command in a terminal
+  # docker run --rm -it -v keycloak_data:/opt/keycloak/data/h2 busybox sh -c "chown -R 1000:1000 /opt/keycloak/data/h2"
+  # this needs to be run when the keycloak container is stopped - I think
+  keycloak-init:
+    image: busybox
+    command: ['sh', '-c', 'chown -R 1000:1000 /opt/keycloak/data/h2']
+    volumes:
+      - keycloak_data:/opt/keycloak/data/h2
+    user: '0'
+    entrypoint: ''
+    # Remove the container after it runs
+    restart: 'no'
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.2.5
+    ports:
+      - '8080:8080'
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: admin
+      KC_BOOTSTRAP_ADMIN_PASSWORD: admin
+    command: start-dev --import-realm
+    volumes:
+      # mount the h2 database files into a volume
+      - keycloak_data:/opt/keycloak/data/h2
+      - keycloak_config:/opt/keycloak/data/import:ro
+    depends_on:
+      keycloak-init:
+        condition: service_completed_successfully
+
+  app:
+    image: mcr.microsoft.com/devcontainers/javascript-node:20-bookworm
+    volumes:
+      - ..:/workspaces:cached
+      # mount the keycloak config in the project src as a volume so we can access it in the keycloak service
+      - keycloak_config:/workspaces/angular-keycloak-playwright/.keycloak
+    command: sleep infinity
+    network_mode: host
+    depends_on:
+      - keycloak
+
+volumes:
+  keycloak_data:
+  keycloak_config:
