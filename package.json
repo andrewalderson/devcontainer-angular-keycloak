@@ -17,6 +17,8 @@
     "@angular/forms": "~20.0.0",
     "@angular/platform-browser": "~20.0.0",
     "@angular/router": "~20.0.0",
+    "keycloak-angular": "^20.0.0",
+    "keycloak-js": "^26.2.0",
     "rxjs": "~7.8.0",
     "zone.js": "~0.15.0"
   },
@@ -32,6 +34,7 @@
     "@commitlint/cli": "^19.8.1",
     "@commitlint/config-conventional": "^19.8.1",
     "@eslint/js": "^9.8.0",
+    "@keycloak/keycloak-admin-client": "^26.2.5",
     "@nx/angular": "21.2.0",
     "@nx/devkit": "21.2.0",
     "@nx/eslint": "21.2.0",
@@ -66,6 +69,6 @@
     "vitest": "^3.0.0"
   },
   "nx": {
-    "includedScripts": [ ]
+    "includedScripts": []
   }
 }

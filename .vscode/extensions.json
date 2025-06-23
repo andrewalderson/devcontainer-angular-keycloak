@@ -6,5 +6,6 @@
     "ms-playwright.playwright",
     "vitest.explorer",
     "postman.postman-for-vscode",
+    "angular.ng-template"
   ]
 }

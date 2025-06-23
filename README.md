@@ -1,10 +1,6 @@
-# Angular, Keycloak, and Playwright
+# Angular and Keycloak Devcontainer
 
-This repository contains a reference application for configuring Angular to use Keycloak for authentication and to authenticate with Keycloak in Playwright tests.
-
-## Development
-
-While this repo is public and meant to be shared, as the author it is setup for my development workflow. I use [devcontainers](https://containers.dev/) for all of my development. I also work on Windows using WSL so the commands that are run outside of the containers are written for Powershell and they may not work in your terminal. You can just ask your favorite AI pair programmer to convert them :)
+This is a reference application for setting up Angular and Keycloak in a [devcontainer](https://containers.dev/)
 
 Keycloak is installed as a Docker container in the [docker-compose](./.devcontainer/docker-compose.yml) file. It uses the embedded h2 database because using an external database is outside the scope of this project. Since we are using the embedded database there are a few things we need to do that will allow us to export the keycloak data, store it with the project, and then import it when the Keycloak container (re)starts.
 
@@ -45,7 +41,3 @@ docker cp ./dev-export.json <id or name of the app container>:/workspaces/angula
 ```
 
 You will need to manually delete the exported file from the host directory after copying (there is also an empty folder created called 'hsperfdata_keycloak' that can be deleted as well)
-
-## Angular configuration
-
-TODO
