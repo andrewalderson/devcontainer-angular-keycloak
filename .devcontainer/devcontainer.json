@@ -10,7 +10,7 @@
 	// Features to add to the dev container. More info: https://containers.dev/features.
 	// "features": {},
 	// Use 'forwardPorts' to make a list of ports inside the container available locally.
-	// "forwardPorts": [],
+	"forwardPorts": [ 4200 ], // automatic port forwarding is not working here so we need to forward the Angular app port
 	// Use 'postCreateCommand' to run commands after the container is created.
 	"postCreateCommand": "npm install && npx playwright install --with-deps",
 	// Configure tool-specific properties.

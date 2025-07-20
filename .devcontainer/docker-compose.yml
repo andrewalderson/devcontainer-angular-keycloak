@@ -31,13 +31,18 @@ services:
         condition: service_completed_successfully
 
   app:
-    image: mcr.microsoft.com/devcontainers/javascript-node:20-bookworm
+    image: mcr.microsoft.com/devcontainers/typescript-node:1-22-bookworm
+    # There is currently an issue with running vite dev server in a devcontainer in vs code
+    # Disabling ipv6 in the kernal fixes it while they argue about who's issue it is to fix
+    # https://github.com/vitejs/vite/issues/16522
+    # https://github.com/microsoft/vscode-remote-release/issues/7029
+    sysctls:
+      - net.ipv6.conf.all.disable_ipv6=1
     volumes:
       - ..:/workspaces:cached
       # mount the keycloak config in the project src as a volume so we can access it in the keycloak service
       - keycloak_config:/workspaces/angular-keycloak-playwright/.keycloak
     command: sleep infinity
-    network_mode: host
     depends_on:
       - keycloak
 
