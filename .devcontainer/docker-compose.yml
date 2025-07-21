@@ -8,7 +8,7 @@ services:
     image: busybox
     command: ['sh', '-c', 'chown -R 1000:1000 /opt/keycloak/data/h2']
     volumes:
-      - keycloak_data:/opt/keycloak/data/h2
+      - keycloak-data:/opt/keycloak/data/h2
     user: '0'
     entrypoint: ''
     # Remove the container after it runs
@@ -24,11 +24,14 @@ services:
     command: start-dev --import-realm
     volumes:
       # mount the h2 database files into a volume
-      - keycloak_data:/opt/keycloak/data/h2
-      - keycloak_config:/opt/keycloak/data/import:ro
+      - keycloak-data:/opt/keycloak/data/h2
+      - keycloak-import:/opt/keycloak/data/import:ro
     depends_on:
       keycloak-init:
         condition: service_completed_successfully
+      app:
+        condition: service_started
+        restart: true
 
   app:
     image: mcr.microsoft.com/devcontainers/typescript-node:1-22-bookworm
@@ -41,11 +44,11 @@ services:
     volumes:
       - ..:/workspaces:cached
       # mount the keycloak config in the project src as a volume so we can access it in the keycloak service
-      - keycloak_config:/workspaces/angular-keycloak-playwright/.keycloak
-    command: sleep infinity
-    depends_on:
-      - keycloak
+      # docker is overwriting the .keycloak directory which it is not supposed to do
+      # so we are creating a subdirectory on start up (docker creates it automatically) and copying config file into it
+      - keycloak-import:/workspaces/devcontainer-angular-keycloak/.keycloak/import
+    command: sh -c "cp /workspaces/devcontainer-angular-keycloak/.keycloak/dev-export.json /workspaces/devcontainer-angular-keycloak/.keycloak/import/dev-export.json && sleep infinity"
 
 volumes:
-  keycloak_data:
-  keycloak_config:
+  keycloak-data:
+  keycloak-import:
